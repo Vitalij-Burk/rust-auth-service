@@ -1,0 +1,23 @@
+[package]
+name = "rust-auth-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+axum = { version = "0.8.8", features = ["macros"] }
+base64 = "0.22.1"
+chrono = { version = "0.4.43", features = ["serde"] }
+dotenvy = "0.15.7"
+getrandom = { version = "0.4.1", features = ["std"] }
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+rand = { version = "0.8.5", features = ["serde", "std", "std_rng"] }
+redis = { version = "1.0.3", features = ["aio", "cluster-async", "tokio-comp"] }
+rsa = { version = "0.9.10", features = ["getrandom", "pkcs5", "serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["full"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
+uuid = { version = "1.20.0", features = ["serde", "v4"] }
