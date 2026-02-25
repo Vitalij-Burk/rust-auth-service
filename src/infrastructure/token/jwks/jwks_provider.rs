@@ -1,8 +1,9 @@
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 
-use crate::{domain::{
-    models::claims::Claims, traits::token::jwt::token_provider::IJwtTokenProvider,
-}, infrastructure::token::jwks::claims::JwksClaims};
+use crate::{
+    domain::{models::claims::Claims, traits::token::jwt::token_provider::IJwtTokenProvider},
+    infrastructure::token::jwks::claims::JwksClaims,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct JwksTokenProvider;

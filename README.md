@@ -29,7 +29,7 @@
 
 #### One provider available now: RsaPemProvider
 
-### Routes available:
+## Routes available:
 
 .route("/key/public", get(get_public_key))
 .route("/generate", post(generate_tokens))
@@ -38,7 +38,7 @@
 .route("/revoke_access", post(revoke_access_token))
 .route("/revoke_refresh", post(revoke_refresh_token))
 
-### More about domain:
+## More about domain:
 
 1. It includes claims model which you can modify how you want (but be careful, because it's usability is only safety in application)
 2. It includes traits for insfrastructure realisations of key and token providers and etc.

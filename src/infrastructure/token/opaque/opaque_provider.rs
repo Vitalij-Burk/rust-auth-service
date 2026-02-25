@@ -9,7 +9,7 @@ impl IOpaqueTokenProvider for GetrandomOpaqueTokenProvider {
     fn generate(&self) -> String {
         let mut bytes = [0u8; 32];
 
-        getrandom::fill(&mut bytes);
+        let _ = getrandom::fill(&mut bytes);
 
         URL_SAFE_NO_PAD.encode(bytes)
     }

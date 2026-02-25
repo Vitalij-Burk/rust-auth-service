@@ -24,7 +24,7 @@ impl JwksClaims {
             sub: value.sub,
             jti: value.jti,
             iat: iat,
-            exp: exp
+            exp: exp,
         })
     }
 }
@@ -37,10 +37,14 @@ pub fn datetime_to_usize(datetime: DateTime<Utc>) -> Result<usize, std::num::Try
     Ok(usize_timestamp)
 }
 
-pub fn usize_to_datetime(usize_timestamp: usize) -> DateTime<Utc> {
+pub fn usize_to_datetime(usize_timestamp: usize) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
     let num_timestamp = usize_timestamp as i64;
 
-    let datetime = Utc.timestamp_opt(num_timestamp, 0).unwrap();
+    let datetime = match Utc.timestamp_opt(num_timestamp, 0) {
+        chrono::offset::LocalResult::Single(datetime) => Ok(datetime),
+        chrono::offset::LocalResult::Ambiguous(_, _) => Err("Ambigious datetime"),
+        chrono::offset::LocalResult::None => Err("Unexpected time")
+    }?;
 
-    datetime
+    Ok(datetime)
 }

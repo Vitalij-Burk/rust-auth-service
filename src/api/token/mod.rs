@@ -1,2 +1,2 @@
-pub mod key_handlers;
+pub mod models;
 pub mod token_handlers;

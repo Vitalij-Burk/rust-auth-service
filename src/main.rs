@@ -5,9 +5,9 @@ use axum::{
 use redis::aio::MultiplexedConnection;
 
 use crate::{
-    api::handlers::{
-        key_handlers::get_public_key,
-        token_handlers::{
+    api::{
+        key::key_handlers::get_public_key,
+        token::token_handlers::{
             generate_tokens, refresh_token, revoke_access_token, revoke_refresh_token,
             verify_access_token,
         },
@@ -36,21 +36,21 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(conn: MultiplexedConnection) -> Self {
+    pub fn new(conn: MultiplexedConnection) -> Result<Self, Box<dyn std::error::Error>> {
         let key_folder = "keys";
 
         let access_provider = JwksTokenProvider;
         let access_validator = JwksTokenValidator;
         let refresh_provider = GetrandomOpaqueTokenProvider;
 
-        let key_manager = KeyManager::new(key_folder);
+        let key_manager = KeyManager::new(key_folder)?;
         let token_manager =
             TokenManager::new(access_provider, access_validator, refresh_provider, conn);
 
-        Self {
+        Ok(Self {
             key_manager: key_manager,
             token_manager: token_manager,
-        }
+        })
     }
 }
 
@@ -58,12 +58,10 @@ impl AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
-    dotenvy::dotenv()?;
-
     let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
     let connection = redis_client.get_multiplexed_async_connection().await?;
 
-    let state = AppState::new(connection);
+    let state = AppState::new(connection)?;
 
     state.key_manager.provide()?;
 

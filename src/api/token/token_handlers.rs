@@ -1,24 +1,24 @@
 use axum::{Json, extract::State, http::StatusCode};
 
 use crate::{
-    AppState, application::services::token::token_manager::TokenManagerError,
-    domain::models::claims::Claims,
+    AppState, api::token::models::ClaimsDTO, application::services::token::token_manager::TokenManagerError, domain::models::claims::Claims
 };
 
 #[axum::debug_handler]
 pub async fn generate_tokens(
     State(mut state): State<AppState>,
-    Json(claims): Json<Claims>,
+    Json(claims): Json<ClaimsDTO>,
 ) -> Result<Json<(String, String)>, (StatusCode, &'static str)> {
-    let private_key = state.key_manager.get_private().map_err(|error| match error {
-        _ => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-        }
-    })?;
+    let private_key = state
+        .key_manager
+        .get_private()
+        .map_err(|error| match error {
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+        })?;
 
     let (access_token, refresh_token) = state
         .token_manager
-        .generate_pair(&claims, &private_key)
+        .generate_pair(&Claims::from(&claims), &private_key)
         .await
         .map_err(|error| match error {
             TokenManagerError::JwtError(_) | TokenManagerError::RedisError(_) => {
@@ -37,13 +37,12 @@ pub async fn verify_access_token(
     State(mut state): State<AppState>,
     Json(access): Json<String>,
 ) -> Result<Json<Claims>, (StatusCode, &'static str)> {
-    let public_key = state.key_manager.get_public().map_err(|error| match error {
-        _ => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-        }
-    })?;
-
-    println!("{}", public_key);
+    let public_key = state
+        .key_manager
+        .get_public()
+        .map_err(|error| match error {
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+        })?;
 
     let claims = state
         .token_manager
@@ -64,16 +63,18 @@ pub async fn refresh_token(
     State(mut state): State<AppState>,
     Json((refresh, access)): Json<(String, String)>,
 ) -> Result<Json<(String, String)>, (StatusCode, &'static str)> {
-    let private_key = state.key_manager.get_private().map_err(|error| match error {
-        _ => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-        }
-    })?;
-    let public_key = state.key_manager.get_public().map_err(|error| match error {
-        _ => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-        }
-    })?;
+    let private_key = state
+        .key_manager
+        .get_private()
+        .map_err(|error| match error {
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+        })?;
+    let public_key = state
+        .key_manager
+        .get_public()
+        .map_err(|error| match error {
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+        })?;
 
     let (access_token, refresh_token) = state
         .token_manager
@@ -94,11 +95,12 @@ pub async fn revoke_access_token(
     State(mut state): State<AppState>,
     Json(access): Json<String>,
 ) -> Result<(), (StatusCode, &'static str)> {
-    let public_key = state.key_manager.get_public().map_err(|error| match error {
-        _ => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-        }
-    })?;
+    let public_key = state
+        .key_manager
+        .get_public()
+        .map_err(|error| match error {
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+        })?;
 
     state
         .token_manager
