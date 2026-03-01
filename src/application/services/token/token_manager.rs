@@ -60,13 +60,10 @@ where
         let access_token = self.access_provider.generate(&claims, &pem)?;
         let refresh_token = self.refresh_provider.generate();
 
-        let access_to_exp_sec = (claims.exp - &claims.iat).num_seconds() as u64;
         let refresh_to_exp_sec = 60 * 60 * 24 * 7;
 
         {
-            self.redis_io.setex(&format!("tokens:access:jti:{}", &claims.jti), &access_token, access_to_exp_sec).await?;
-
-            self.redis_io.setex(&format!("tokens:refresh:token:{}", &refresh_token), &refresh_token, refresh_to_exp_sec).await?;
+            self.redis_io.setex(&format!("tokens:refresh:token:{}", &refresh_token), "exists", refresh_to_exp_sec).await?;
         }
 
         Ok((access_token, refresh_token))
@@ -78,15 +75,6 @@ where
         pem: &str,
     ) -> Result<Claims, TokenManagerError> {
         let claims = self.access_validator.verify(access, pem)?;
-        
-        let access = self.redis_io.get(&format!("tokens:access:jti:{}", &claims.jti)).await?;
-
-        if access.is_empty() {
-            return Err(TokenManagerError::NotFound(format!(
-                "Access token with jti {} not found",
-                &claims.jti
-            )));
-        }
 
         Ok(claims)
     }
@@ -99,20 +87,6 @@ where
                 "Refresh token {} not found",
                 &refresh
             )));
-        }
-
-        Ok(())
-    }
-
-    pub async fn revoke_access(
-        &mut self,
-        access: &str,
-        pem: &str,
-    ) -> Result<(), TokenManagerError> {
-        let claims = self.access_validator.verify(access, pem)?;
-
-        {
-            self.redis_io.delete(&format!("tokens:access:jti:{}", &claims.jti)).await?;
         }
 
         Ok(())
@@ -148,20 +122,13 @@ where
 
         let claims = self.access_validator.verify(&access, &public_pem)?;
 
-        {
-            self.redis_io.delete(&format!("tokens:access:jti:{}", &claims.jti)).await?
-        }
-
         let access_token = self.access_provider.generate(&claims, &private_pem)?;
         let refresh_token = self.refresh_provider.generate();
 
-        let access_to_exp_sec = (claims.exp - &claims.iat).num_seconds() as u64;
         let refresh_to_exp_sec = 60 * 60 * 24 * 7;
 
         {
-            self.redis_io.setex(&format!("tokens:access:jti:{}", &claims.jti), &access_token, access_to_exp_sec).await?;
-
-            self.redis_io.setex(&format!("tokens:refresh:token:{}", &refresh_token), &refresh_token, refresh_to_exp_sec).await?;
+            self.redis_io.setex(&format!("tokens:refresh:token:{}", &refresh_token), "exists", refresh_to_exp_sec).await?;
         }
 
         Ok((access_token, refresh_token))

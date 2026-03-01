@@ -41,7 +41,7 @@ impl KeyManager {
         let keys_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(keys_dir_path);
 
         if !keys_dir.exists() {
-            std::fs::create_dir(&keys_dir).map_err(|error| match error {
+            let _ = std::fs::create_dir(&keys_dir).map_err(|error| match error {
                 err => {
                     error!("Couldn't create keys directory: {}", &err);
                     err

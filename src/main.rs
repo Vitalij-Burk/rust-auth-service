@@ -8,7 +8,7 @@ use crate::{
     api::{
         key::key_handlers::get_public_key,
         token::token_handlers::{
-            generate_tokens, refresh_token, revoke_access_token, revoke_refresh_token,
+            generate_tokens, refresh_token, revoke_refresh_token,
             verify_access_token,
         },
     },
@@ -70,7 +70,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/generate", post(generate_tokens))
         .route("/verify", post(verify_access_token))
         .route("/refresh", post(refresh_token))
-        .route("/revoke_access", post(revoke_access_token))
         .route("/revoke_refresh", post(revoke_refresh_token))
         .with_state(state);
 
