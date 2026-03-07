@@ -14,7 +14,12 @@ impl From<&ClaimsDTO> for Claims {
         let jti = Uuid::new_v4();
         let iat = Utc::now();
         let exp = iat + Duration::minutes(15);
-        
-        Self { sub: value.sub, jti: jti, iat: iat, exp: exp }
+
+        Self {
+            sub: value.sub,
+            jti: jti,
+            iat: iat,
+            exp: exp,
+        }
     }
 }

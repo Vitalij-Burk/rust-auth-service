@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    string::FromUtf8Error,
-};
+use std::{path::PathBuf, string::FromUtf8Error};
 
 use thiserror::Error;
 use tracing::error;
@@ -33,7 +30,7 @@ pub enum KeyManagerError {
     IO(#[from] std::io::Error),
 
     #[error("From UTF-8 error: {0}")]
-    FromUTF8(#[from] FromUtf8Error),
+    FromUtf8(#[from] FromUtf8Error),
 }
 
 impl KeyManager {
@@ -66,7 +63,7 @@ impl KeyManager {
             key_provider: RsaPemProvider,
             keys_dir: keys_dir,
             private_pem_file_io: private_pem_file_io,
-            public_pem_file_io: public_pem_file_io
+            public_pem_file_io: public_pem_file_io,
         })
     }
 
@@ -99,25 +96,25 @@ impl KeyManager {
     }
 
     pub fn get_public(&self) -> Result<String, KeyManagerError> {
-        let public_pem = String::from_utf8(self.public_pem_file_io.read()?)
-        .map_err(|error| match error {
-            err => {
-                error!("From UTF-8 error caused: {}", &err);
-                err
-            }
-        })?;
+        let public_pem =
+            String::from_utf8(self.public_pem_file_io.read()?).map_err(|error| match error {
+                err => {
+                    error!("From UTF-8 error caused: {}", &err);
+                    err
+                }
+            })?;
 
         Ok(public_pem)
     }
 
     pub fn get_private(&self) -> Result<String, KeyManagerError> {
-        let private_pem = String::from_utf8(self.private_pem_file_io.read()?)
-        .map_err(|error| match error {
-            err => {
-                error!("From UTF-8 error caused: {}", &err);
-                err
-            }
-        })?;
+        let private_pem =
+            String::from_utf8(self.private_pem_file_io.read()?).map_err(|error| match error {
+                err => {
+                    error!("From UTF-8 error caused: {}", &err);
+                    err
+                }
+            })?;
 
         Ok(private_pem)
     }
