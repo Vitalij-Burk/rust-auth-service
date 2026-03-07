@@ -1,19 +1,32 @@
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+use thiserror::Error;
 use tracing::error;
 
 use crate::{
     domain::{models::claims::Claims, traits::token::jwt::token_validator::IJwtTokenValidator},
-    infrastructure::token::jwks::claims::{JwksClaims, usize_to_datetime},
+    infrastructure::token::jwks::claims::{JwksClaims, JwksClaimsError, usize_to_datetime},
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct JwksTokenValidator;
 
+#[derive(Debug, Error)]
+pub enum JwksTokenValidatorError {
+    #[error("Rsa error: {0}")]
+    Rsa(#[from] rsa::Error),
+
+    #[error("JWT error: {0}")]
+    Jwt(#[from] jsonwebtoken::errors::Error),
+
+    #[error("Jwks claims error: {0}")]
+    JwksClaims(#[from] JwksClaimsError),
+}
+
 impl IJwtTokenValidator for JwksTokenValidator {
     type Claims = Claims;
-    type Error = Box<dyn std::error::Error>;
+    type Error = JwksTokenValidatorError;
 
-    fn verify(&self, token: &str, public_pem: &str) -> Result<Claims, Box<dyn std::error::Error>> {
+    fn verify(&self, token: &str, public_pem: &str) -> Result<Claims, JwksTokenValidatorError> {
         let key =
             DecodingKey::from_rsa_pem(public_pem.as_bytes()).map_err(|error| match error {
                 _ => {

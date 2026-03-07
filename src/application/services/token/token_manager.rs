@@ -21,6 +21,9 @@ use crate::{
             AesGcmCryptographer, AesGcmCryptographerError,
         },
         storage::redis::io::redis_io::RedisIO,
+        token::jwks::{
+            jwks_provider::JwksTokenProviderError, jwks_validator::JwksTokenValidatorError,
+        },
         utils::io::files::files_io::FileIO,
     },
 };
@@ -37,8 +40,11 @@ pub struct TokenManager<AccessProvider, AccessValidator, RefreshProvider, Storag
 
 #[derive(Debug, Error)]
 pub enum TokenManagerError {
-    #[error("Jwt error: {0}")]
-    JwtError(#[from] Box<dyn std::error::Error>),
+    #[error("Jwks provider error: {0}")]
+    JwksTokenProvider(#[from] JwksTokenProviderError),
+
+    #[error("Jwks validator error: {0}")]
+    JwksTokenValidator(#[from] JwksTokenValidatorError),
 
     #[error("Redis storage error: {0}")]
     RedisError(#[from] redis::RedisError),
@@ -55,15 +61,15 @@ pub enum TokenManagerError {
     #[error("Unexpected error: {0}")]
     Unexpected(String),
 
-    #[error("AesGcmCryptographer error: {0}")]
-    AesGcmCryptographer(#[from] AesGcmCryptographerError),
+    #[error("Cryptographer error: {0}")]
+    Cryptographer(#[from] AesGcmCryptographerError),
 }
 
 impl<AccessProvider, AccessValidator, RefreshProvider, Storage>
     TokenManager<AccessProvider, AccessValidator, RefreshProvider, Storage>
 where
-    AccessProvider: IJwtTokenProvider<Claims = Claims, Error = Box<dyn std::error::Error>>,
-    AccessValidator: IJwtTokenValidator<Claims = Claims, Error = Box<dyn std::error::Error>>,
+    AccessProvider: IJwtTokenProvider<Claims = Claims, Error = JwksTokenProviderError>,
+    AccessValidator: IJwtTokenValidator<Claims = Claims, Error = JwksTokenValidatorError>,
     RefreshProvider: IOpaqueTokenProvider,
     Storage: redis::AsyncCommands + Send + Sync,
 {

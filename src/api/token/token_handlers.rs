@@ -23,11 +23,12 @@ pub async fn generate_tokens(
         .generate_pair(&Claims::from(&claims), &private_key)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_)
-            | TokenManagerError::RedisError(_)
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::AesGcmCryptographer(_) => {
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) | TokenManagerError::Unexpected(_) => {
@@ -56,11 +57,12 @@ pub async fn verify_access_token(
         .verify_access(&access, &public_key)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_)
-            | TokenManagerError::RedisError(_)
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::AesGcmCryptographer(_) => {
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
@@ -100,11 +102,12 @@ pub async fn refresh_token(
         )
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_)
-            | TokenManagerError::RedisError(_)
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::AesGcmCryptographer(_) => {
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
@@ -125,11 +128,12 @@ pub async fn revoke_refresh_token(
         .revoke_refresh(&encrypted_refresh, &nonce)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_)
-            | TokenManagerError::RedisError(_)
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::AesGcmCryptographer(_) => {
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User wasn't authorized"),
