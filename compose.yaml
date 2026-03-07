@@ -9,9 +9,7 @@
 # https://github.com/docker/awesome-compose
 services:
   server:
-    build:
-      context: .
-      target: final
+    image: rust_auth_service:latest
     ports:
       - 5000:5000
     depends_on:
@@ -24,7 +22,7 @@ services:
     image: redis:latest
     restart: always
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:

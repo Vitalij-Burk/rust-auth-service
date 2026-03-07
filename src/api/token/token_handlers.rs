@@ -1,14 +1,14 @@
 use axum::{Json, extract::State, http::StatusCode};
 
 use crate::{
-    AppState, api::token::models::ClaimsDTO, application::services::token::token_manager::TokenManagerError, domain::models::claims::Claims
+    AppState, api::token::models::ClaimsDTO,
+    application::services::token::token_manager::TokenManagerError, domain::models::claims::Claims,
 };
 
-#[axum::debug_handler]
 pub async fn generate_tokens(
     State(mut state): State<AppState>,
     Json(claims): Json<ClaimsDTO>,
-) -> Result<Json<(String, String)>, (StatusCode, &'static str)> {
+) -> Result<Json<(String, (String, String))>, (StatusCode, &'static str)> {
     let private_key = state
         .key_manager
         .get_private()
@@ -16,23 +16,31 @@ pub async fn generate_tokens(
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
         })?;
 
-    let (access_token, refresh_token) = state
+    println!("Handler before generate");
+
+    let (access_token, (encrypted_refresh_token, nonce)) = state
         .token_manager
         .generate_pair(&Claims::from(&claims), &private_key)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_) | TokenManagerError::RedisError(_) => {
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
+            | TokenManagerError::Crypto(_)
+            | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
-            TokenManagerError::NotFound(_) => {
+            TokenManagerError::NotFound(_) | TokenManagerError::Unexpected(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
         })?;
 
-    Ok(Json((access_token, refresh_token)))
+    println!("Handler after generate");
+
+    Ok(Json((access_token, (encrypted_refresh_token, nonce))))
 }
 
-#[axum::debug_handler]
 pub async fn verify_access_token(
     State(mut state): State<AppState>,
     Json(access): Json<String>,
@@ -49,20 +57,27 @@ pub async fn verify_access_token(
         .verify_access(&access, &public_key)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_) | TokenManagerError::RedisError(_) => {
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
+            | TokenManagerError::Crypto(_)
+            | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
+            TokenManagerError::Unexpected(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
         })?;
 
     Ok(Json(claims))
 }
 
-#[axum::debug_handler]
 pub async fn refresh_token(
     State(mut state): State<AppState>,
-    Json((refresh, access)): Json<(String, String)>,
-) -> Result<Json<(String, String)>, (StatusCode, &'static str)> {
+    Json(((encrypted_refresh, nonce), access)): Json<((String, String), String)>,
+) -> Result<Json<(String, (String, String))>, (StatusCode, &'static str)> {
     let private_key = state
         .key_manager
         .get_private()
@@ -76,34 +91,55 @@ pub async fn refresh_token(
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
         })?;
 
-    let (access_token, refresh_token) = state
+    let (access_token, (encrypted_refresh_token, nonce)) = state
         .token_manager
-        .refresh(&refresh, &access, &private_key, &public_key)
+        .refresh(
+            &encrypted_refresh,
+            &nonce,
+            &access,
+            &private_key,
+            &public_key,
+        )
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_) | TokenManagerError::RedisError(_) => {
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
+            | TokenManagerError::Crypto(_)
+            | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
+            TokenManagerError::Unexpected(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
         })?;
 
-    Ok(Json((access_token, refresh_token)))
+    Ok(Json((access_token, (encrypted_refresh_token, nonce))))
 }
 
-#[axum::debug_handler]
 pub async fn revoke_refresh_token(
     State(mut state): State<AppState>,
-    Json(refresh): Json<String>,
+    Json((encrypted_refresh, nonce)): Json<(String, String)>,
 ) -> Result<(), (StatusCode, &'static str)> {
     state
         .token_manager
-        .revoke_refresh(&refresh)
+        .revoke_refresh(&encrypted_refresh, &nonce)
         .await
         .map_err(|error| match error {
-            TokenManagerError::JwtError(_) | TokenManagerError::RedisError(_) => {
+            TokenManagerError::RedisError(_)
+            | TokenManagerError::JwksTokenProvider(_)
+            | TokenManagerError::JwksTokenValidator(_)
+            | TokenManagerError::Crypto(_)
+            | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User wasn't authorized"),
+            TokenManagerError::Unexpected(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
         })?;
 
     Ok(())

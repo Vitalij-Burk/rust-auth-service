@@ -2,7 +2,6 @@ use axum::{extract::State, http::StatusCode};
 
 use crate::AppState;
 
-#[axum::debug_handler]
 pub async fn get_public_key(
     State(state): State<AppState>,
 ) -> Result<String, (StatusCode, &'static str)> {

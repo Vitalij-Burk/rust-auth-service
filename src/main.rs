@@ -8,8 +8,7 @@ use crate::{
     api::{
         key::key_handlers::get_public_key,
         token::token_handlers::{
-            generate_tokens, refresh_token, revoke_refresh_token,
-            verify_access_token,
+            generate_tokens, refresh_token, revoke_refresh_token, verify_access_token,
         },
     },
     application::services::{key::key_manager::KeyManager, token::token_manager::TokenManager},
@@ -44,8 +43,13 @@ impl AppState {
         let refresh_provider = GetrandomOpaqueTokenProvider;
 
         let key_manager = KeyManager::new(key_folder)?;
-        let token_manager =
-            TokenManager::new(access_provider, access_validator, refresh_provider, conn);
+        let token_manager = TokenManager::new(
+            access_provider,
+            access_validator,
+            refresh_provider,
+            key_folder,
+            conn,
+        )?;
 
         Ok(Self {
             key_manager: key_manager,
@@ -56,6 +60,8 @@ impl AppState {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
+
     tracing_subscriber::fmt::init();
 
     let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
@@ -73,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/revoke_refresh", post(revoke_refresh_token))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:5000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:5001").await?;
     axum::serve(listener, app).await?;
 
     Ok(())
