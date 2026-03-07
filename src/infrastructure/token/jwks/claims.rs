@@ -1,5 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use crate::domain::models::claims::Claims;
 
@@ -32,7 +33,12 @@ impl JwksClaims {
 pub fn datetime_to_usize(datetime: DateTime<Utc>) -> Result<usize, std::num::TryFromIntError> {
     let timestamp = datetime.timestamp();
 
-    let usize_timestamp = usize::try_from(timestamp)?;
+    let usize_timestamp = usize::try_from(timestamp).map_err(|error| match error {
+        _ => {
+            error!("{}", error);
+            error
+        }
+    })?;
 
     Ok(usize_timestamp)
 }
@@ -46,7 +52,13 @@ pub fn usize_to_datetime(
         chrono::offset::LocalResult::Single(datetime) => Ok(datetime),
         chrono::offset::LocalResult::Ambiguous(_, _) => Err("Ambigious datetime"),
         chrono::offset::LocalResult::None => Err("Unexpected time"),
-    }?;
+    }
+    .map_err(|error| match error {
+        _ => {
+            error!("{}", error);
+            error
+        }
+    })?;
 
     Ok(datetime)
 }

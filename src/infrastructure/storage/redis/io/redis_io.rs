@@ -1,3 +1,5 @@
+use tracing::error;
+
 #[derive(Debug, Clone, Copy)]
 pub struct RedisIO<Storage> {
     redis_storage: Storage,
@@ -21,19 +23,42 @@ where
     ) -> Result<(), redis::RedisError> {
         self.redis_storage
             .set_ex::<&str, String, ()>(&key, data.to_string(), exp)
-            .await?;
+            .await
+            .map_err(|error| match error {
+                _ => {
+                    error!("{}", error);
+                    error
+                }
+            })?;
 
         Ok(())
     }
 
     pub async fn get(&mut self, key: &str) -> Result<String, redis::RedisError> {
-        let data = self.redis_storage.get::<&str, String>(&key).await?;
+        let data =
+            self.redis_storage
+                .get::<&str, String>(&key)
+                .await
+                .map_err(|error| match error {
+                    _ => {
+                        error!("{}", error);
+                        error
+                    }
+                })?;
 
         Ok(data)
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<(), redis::RedisError> {
-        self.redis_storage.del::<&str, ()>(&key).await?;
+        self.redis_storage
+            .del::<&str, ()>(&key)
+            .await
+            .map_err(|error| match error {
+                _ => {
+                    error!("{}", error);
+                    error
+                }
+            })?;
 
         Ok(())
     }

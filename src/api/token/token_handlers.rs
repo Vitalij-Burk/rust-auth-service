@@ -27,7 +27,7 @@ pub async fn generate_tokens(
             | TokenManagerError::RedisError(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::Base64Decode(_) => {
+            | TokenManagerError::AesGcmCryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) | TokenManagerError::Unexpected(_) => {
@@ -60,7 +60,7 @@ pub async fn verify_access_token(
             | TokenManagerError::RedisError(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::Base64Decode(_) => {
+            | TokenManagerError::AesGcmCryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
@@ -104,7 +104,7 @@ pub async fn refresh_token(
             | TokenManagerError::RedisError(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::Base64Decode(_) => {
+            | TokenManagerError::AesGcmCryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User unauthorized"),
@@ -129,7 +129,7 @@ pub async fn revoke_refresh_token(
             | TokenManagerError::RedisError(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
-            | TokenManagerError::Base64Decode(_) => {
+            | TokenManagerError::AesGcmCryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
             TokenManagerError::NotFound(_) => (StatusCode::UNAUTHORIZED, "User wasn't authorized"),

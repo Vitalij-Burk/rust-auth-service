@@ -31,6 +31,9 @@ pub enum KeyManagerError {
 
     #[error("From UTF-8 error: {0}")]
     FromUtf8(#[from] FromUtf8Error),
+
+    #[error("Rsa error: {0}")]
+    Rsa(#[from] rsa::Error),
 }
 
 impl KeyManager {
@@ -68,7 +71,7 @@ impl KeyManager {
     }
 
     pub fn provide(&self) -> Result<(), KeyManagerError> {
-        let (private_pem, public_pem) = self.key_provider.generate_pair();
+        let (private_pem, public_pem) = self.key_provider.generate_pair()?;
 
         self.private_pem_file_io.write(&private_pem)?;
         self.public_pem_file_io.write(&public_pem)?;
@@ -84,7 +87,7 @@ impl KeyManager {
     }
 
     pub fn update(&self) -> Result<(), KeyManagerError> {
-        let (private_pem, public_pem) = self.key_provider.generate_pair();
+        let (private_pem, public_pem) = self.key_provider.generate_pair()?;
 
         self.private_pem_file_io.remove()?;
         self.public_pem_file_io.remove()?;

@@ -17,8 +17,11 @@ use crate::{
         },
     },
     infrastructure::{
-        cryptographers::aes_gcm::aes_gcm_cryptographer::AesGcmCryptographer,
-        storage::redis::io::redis_io::RedisIO, utils::io::files::files_io::FileIO,
+        cryptographers::aes_gcm::aes_gcm_cryptographer::{
+            AesGcmCryptographer, AesGcmCryptographerError,
+        },
+        storage::redis::io::redis_io::RedisIO,
+        utils::io::files::files_io::FileIO,
     },
 };
 
@@ -52,8 +55,8 @@ pub enum TokenManagerError {
     #[error("Unexpected error: {0}")]
     Unexpected(String),
 
-    #[error("Base64 decode error: {0}")]
-    Base64Decode(#[from] base64::DecodeError),
+    #[error("AesGcmCryptographer error: {0}")]
+    AesGcmCryptographer(#[from] AesGcmCryptographerError),
 }
 
 impl<AccessProvider, AccessValidator, RefreshProvider, Storage>
@@ -119,34 +122,21 @@ where
 
         let refresh_to_exp_sec = 60 * 60 * 24 * 7;
 
-        {
-            self.redis_io
-                .setex(
-                    &format!("tokens:refresh:token:{}", &refresh_token),
-                    "exists",
-                    refresh_to_exp_sec,
-                )
-                .await?;
-        }
+        self.redis_io
+            .setex(
+                &format!("tokens:refresh:token:{}", &refresh_token),
+                "exists",
+                refresh_to_exp_sec,
+            )
+            .await?;
 
         println!("Service before cryptography");
 
-        let (encrypted_refresh, nonce) =
-            self.cryptographer
-                .encrypt(&refresh_token)
-                .map_err(|error| match error {
-                    error => TokenManagerError::Crypto(error.to_string()),
-                })?;
+        let (encrypted_refresh, nonce) = self.cryptographer.encrypt(&refresh_token)?;
 
         println!("Service after cryptography");
 
-        Ok((
-            access_token,
-            (
-                encrypted_refresh,
-                nonce,
-            ),
-        ))
+        Ok((access_token, (encrypted_refresh, nonce)))
     }
 
     pub async fn verify_access(
@@ -164,19 +154,11 @@ where
         encrypted_refresh: &str,
         nonce: &str,
     ) -> Result<(), TokenManagerError> {
-        let refresh = self
-            .cryptographer
-            .decrypt(&encrypted_refresh, &nonce)
-            .map_err(|error| match error {
-                error => TokenManagerError::Crypto(error.to_string()),
-            })?;
+        let refresh = self.cryptographer.decrypt(&encrypted_refresh, &nonce)?;
 
         let refresh_token = self
             .redis_io
-            .get(&format!(
-                "tokens:refresh:token:{}",
-                &refresh.clone()
-            ))
+            .get(&format!("tokens:refresh:token:{}", &refresh.clone()))
             .await?;
 
         if refresh_token.is_empty() {
@@ -194,21 +176,11 @@ where
         encrypted_refresh: &str,
         nonce: &str,
     ) -> Result<(), TokenManagerError> {
-        let refresh = self
-            .cryptographer
-            .decrypt(&encrypted_refresh, &nonce)
-            .map_err(|error| match error {
-                error => TokenManagerError::Crypto(error.to_string()),
-            })?;
+        let refresh = self.cryptographer.decrypt(&encrypted_refresh, &nonce)?;
 
-        {
-            self.redis_io
-                .delete(&format!(
-                    "tokens:refresh:token:{}",
-                    &refresh
-                ))
-                .await?;
-        }
+        self.redis_io
+            .delete(&format!("tokens:refresh:token:{}", &refresh))
+            .await?;
 
         Ok(())
     }
@@ -221,19 +193,11 @@ where
         private_pem: &str,
         public_pem: &str,
     ) -> Result<(String, (String, String)), TokenManagerError> {
-        let refresh = self
-            .cryptographer
-            .decrypt(&encrypted_refresh, &nonce)
-            .map_err(|error| match error {
-                error => TokenManagerError::Crypto(error.to_string()),
-            })?;
+        let refresh = self.cryptographer.decrypt(&encrypted_refresh, &nonce)?;
 
         let refresh_token = self
             .redis_io
-            .get(&format!(
-                "tokens:refresh:token:{}",
-                &refresh.clone()
-            ))
+            .get(&format!("tokens:refresh:token:{}", &refresh.clone()))
             .await?;
 
         if refresh_token.is_empty() {
@@ -243,14 +207,9 @@ where
             )));
         }
 
-        {
-            self.redis_io
-                .delete(&format!(
-                    "tokens:refresh:token:{}",
-                    &refresh.clone()
-                ))
-                .await?;
-        }
+        self.redis_io
+            .delete(&format!("tokens:refresh:token:{}", &refresh.clone()))
+            .await?;
 
         let claims = self.access_validator.verify(&access, &public_pem)?;
 
@@ -259,29 +218,16 @@ where
 
         let refresh_to_exp_sec = 60 * 60 * 24 * 7;
 
-        {
-            self.redis_io
-                .setex(
-                    &format!("tokens:refresh:token:{}", &refresh_token),
-                    "exists",
-                    refresh_to_exp_sec,
-                )
-                .await?;
-        }
+        self.redis_io
+            .setex(
+                &format!("tokens:refresh:token:{}", &refresh_token),
+                "exists",
+                refresh_to_exp_sec,
+            )
+            .await?;
 
-        let (encrypted_refresh, nonce) =
-            self.cryptographer
-                .encrypt(&refresh_token)
-                .map_err(|error| match error {
-                    error => TokenManagerError::Crypto(error.to_string()),
-                })?;
+        let (encrypted_refresh, nonce) = self.cryptographer.encrypt(&refresh_token)?;
 
-        Ok((
-            access_token,
-            (
-                encrypted_refresh,
-                nonce,
-            ),
-        ))
+        Ok((access_token, (encrypted_refresh, nonce)))
     }
 }
