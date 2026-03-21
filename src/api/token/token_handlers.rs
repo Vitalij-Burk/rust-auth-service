@@ -16,8 +16,6 @@ pub async fn generate_tokens(
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
         })?;
 
-    println!("Handler before generate");
-
     let (access_token, (encrypted_refresh_token, nonce)) = state
         .token_manager
         .generate_pair(&Claims::from(&claims), &private_key)
@@ -35,8 +33,6 @@ pub async fn generate_tokens(
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
         })?;
-
-    println!("Handler after generate");
 
     Ok(Json((access_token, (encrypted_refresh_token, nonce))))
 }

@@ -136,11 +136,7 @@ where
             )
             .await?;
 
-        println!("Service before cryptography");
-
         let (encrypted_refresh, nonce) = self.cryptographer.encrypt(&refresh_token)?;
-
-        println!("Service after cryptography");
 
         Ok((access_token, (encrypted_refresh, nonce)))
     }

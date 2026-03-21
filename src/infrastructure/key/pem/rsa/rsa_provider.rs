@@ -12,7 +12,12 @@ impl RsaPemProvider {
     pub fn generate_pair(&self) -> Result<(String, String), rsa::Error> {
         let mut rng = OsRng;
 
-        let private_key = RsaPrivateKey::new(&mut rng, 2048).unwrap();
+        let private_key = RsaPrivateKey::new(&mut rng, 2048).map_err(|error| match error {
+            _ => {
+                error!("{}", error);
+                error
+            }
+        })?;
         let private_pem = private_key
             .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
             .map_err(|error| match error {
