@@ -8,7 +8,7 @@ use crate::{
 pub async fn generate_tokens(
     State(mut state): State<AppState>,
     Json(claims): Json<ClaimsDTO>,
-) -> Result<Json<(String, (String, String))>, (StatusCode, &'static str)> {
+) -> Result<Json<(String, String, String)>, (StatusCode, &'static str)> {
     let private_key = state
         .key_manager
         .get_private()
@@ -34,13 +34,13 @@ pub async fn generate_tokens(
             }
         })?;
 
-    Ok(Json((access_token, (encrypted_refresh_token, nonce))))
+    Ok(Json((access_token, encrypted_refresh_token, nonce)))
 }
 
 pub async fn verify_access_token(
     State(mut state): State<AppState>,
     Json(access): Json<String>,
-) -> Result<Json<Claims>, (StatusCode, &'static str)> {
+) -> Result<Json<bool>, (StatusCode, &'static str)> {
     let public_key = state
         .key_manager
         .get_public()
@@ -48,7 +48,7 @@ pub async fn verify_access_token(
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
         })?;
 
-    let claims = state
+    let res = state
         .token_manager
         .verify_access(&access, &public_key)
         .await
@@ -67,13 +67,13 @@ pub async fn verify_access_token(
             }
         })?;
 
-    Ok(Json(claims))
+    Ok(Json(res))
 }
 
 pub async fn refresh_token(
     State(mut state): State<AppState>,
     Json(((encrypted_refresh, nonce), access)): Json<((String, String), String)>,
-) -> Result<Json<(String, (String, String))>, (StatusCode, &'static str)> {
+) -> Result<Json<(String, String, String)>, (StatusCode, &'static str)> {
     let private_key = state
         .key_manager
         .get_private()
@@ -112,7 +112,7 @@ pub async fn refresh_token(
             }
         })?;
 
-    Ok(Json((access_token, (encrypted_refresh_token, nonce))))
+    Ok(Json((access_token, encrypted_refresh_token, nonce)))
 }
 
 pub async fn revoke_refresh_token(

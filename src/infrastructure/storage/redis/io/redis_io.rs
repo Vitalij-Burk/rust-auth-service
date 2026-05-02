@@ -1,4 +1,4 @@
-use tracing::error;
+use crate::domain::error::error_handling::log_err;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RedisIO<Storage> {
@@ -24,27 +24,17 @@ where
         self.redis_storage
             .set_ex::<&str, String, ()>(&key, data.to_string(), exp)
             .await
-            .map_err(|error| match error {
-                _ => {
-                    error!("{}", error);
-                    error
-                }
-            })?;
+            .map_err(log_err)?;
 
         Ok(())
     }
 
     pub async fn get(&mut self, key: &str) -> Result<String, redis::RedisError> {
-        let data =
-            self.redis_storage
-                .get::<&str, String>(&key)
-                .await
-                .map_err(|error| match error {
-                    _ => {
-                        error!("{}", error);
-                        error
-                    }
-                })?;
+        let data = self
+            .redis_storage
+            .get::<&str, String>(&key)
+            .await
+            .map_err(log_err)?;
 
         Ok(data)
     }
@@ -53,12 +43,7 @@ where
         self.redis_storage
             .del::<&str, ()>(&key)
             .await
-            .map_err(|error| match error {
-                _ => {
-                    error!("{}", error);
-                    error
-                }
-            })?;
+            .map_err(log_err)?;
 
         Ok(())
     }

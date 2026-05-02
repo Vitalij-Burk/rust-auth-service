@@ -1,9 +1,11 @@
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use thiserror::Error;
-use tracing::error;
 
 use crate::{
-    domain::{models::claims::Claims, traits::token::jwt::token_validator::IJwtTokenValidator},
+    domain::{
+        error::error_handling::log_err, models::claims::Claims,
+        traits::token::jwt::token_validator::IJwtTokenValidator,
+    },
     infrastructure::token::jwks::claims::{JwksClaims, JwksClaimsError, usize_to_datetime},
 };
 
@@ -26,22 +28,21 @@ impl IJwtTokenValidator for JwksTokenValidator {
     type Claims = Claims;
     type Error = JwksTokenValidatorError;
 
-    fn verify(&self, token: &str, public_pem: &str) -> Result<Claims, JwksTokenValidatorError> {
-        let key =
-            DecodingKey::from_rsa_pem(public_pem.as_bytes()).map_err(|error| match error {
-                _ => {
-                    error!("{}", error);
-                    error
-                }
-            })?;
+    fn verify(&self, token: &str, public_pem: &str) -> Result<bool, Self::Error> {
+        let key = DecodingKey::from_rsa_pem(public_pem.as_bytes()).map_err(log_err)?;
+
+        let _ = decode::<JwksClaims>(&token, &key, &Validation::new(Algorithm::RS256))
+            .map_err(log_err)?
+            .claims;
+
+        Ok(true)
+    }
+
+    fn decode(&self, token: &str, public_pem: &str) -> Result<Self::Claims, Self::Error> {
+        let key = DecodingKey::from_rsa_pem(public_pem.as_bytes()).map_err(log_err)?;
 
         let storage_claims = decode::<JwksClaims>(&token, &key, &Validation::new(Algorithm::RS256))
-            .map_err(|error| match error {
-                _ => {
-                    error!("{}", error);
-                    error
-                }
-            })?
+            .map_err(log_err)?
             .claims;
 
         let claims = Claims {

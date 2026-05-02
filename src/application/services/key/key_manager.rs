@@ -3,8 +3,11 @@ use std::{path::PathBuf, string::FromUtf8Error};
 use thiserror::Error;
 use tracing::error;
 
-use crate::infrastructure::{
-    key::pem::rsa::rsa_provider::RsaPemProvider, utils::io::files::files_io::FileIO,
+use crate::{
+    domain::error::error_handling::log_err,
+    infrastructure::{
+        key::pem::rsa::rsa_provider::RsaPemProvider, utils::io::files::files_io::FileIO,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -41,12 +44,7 @@ impl KeyManager {
         let keys_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(keys_dir_path);
 
         if !keys_dir.exists() {
-            let _ = std::fs::create_dir(&keys_dir).map_err(|error| match error {
-                err => {
-                    error!("Couldn't create keys directory: {}", &err);
-                    err
-                }
-            });
+            let _ = std::fs::create_dir(&keys_dir).map_err(log_err);
         }
 
         let private_pem_file_io = FileIO::new(
@@ -99,25 +97,13 @@ impl KeyManager {
     }
 
     pub fn get_public(&self) -> Result<String, KeyManagerError> {
-        let public_pem =
-            String::from_utf8(self.public_pem_file_io.read()?).map_err(|error| match error {
-                err => {
-                    error!("From UTF-8 error caused: {}", &err);
-                    err
-                }
-            })?;
+        let public_pem = String::from_utf8(self.public_pem_file_io.read()?).map_err(log_err)?;
 
         Ok(public_pem)
     }
 
     pub fn get_private(&self) -> Result<String, KeyManagerError> {
-        let private_pem =
-            String::from_utf8(self.private_pem_file_io.read()?).map_err(|error| match error {
-                err => {
-                    error!("From UTF-8 error caused: {}", &err);
-                    err
-                }
-            })?;
+        let private_pem = String::from_utf8(self.private_pem_file_io.read()?).map_err(log_err)?;
 
         Ok(private_pem)
     }

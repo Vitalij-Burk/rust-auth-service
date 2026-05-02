@@ -3,6 +3,7 @@ use axum::{
     routing::{get, post},
 };
 use redis::aio::MultiplexedConnection;
+use tracing::info;
 
 use crate::{
     api::{
@@ -60,9 +61,9 @@ impl AppState {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenvy::dotenv().ok();
-
     tracing_subscriber::fmt::init();
+
+    dotenvy::dotenv().ok();
 
     let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
     let connection = redis_client.get_multiplexed_async_connection().await?;
@@ -72,6 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     state.key_manager.provide()?;
 
     let app = Router::new()
+        .route("/", get(|| async { "Hello world!" }))
         .route("/key/public", get(get_public_key))
         .route("/generate", post(generate_tokens))
         .route("/verify", post(verify_access_token))
@@ -79,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/revoke_refresh", post(revoke_refresh_token))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:5001").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:5000").await?;
     axum::serve(listener, app).await?;
 
     Ok(())

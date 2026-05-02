@@ -1,9 +1,8 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::error;
 
-use crate::domain::models::claims::Claims;
+use crate::domain::{error::error_handling::log_err, models::claims::Claims};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwksClaims {
@@ -11,10 +10,6 @@ pub struct JwksClaims {
     pub jti: uuid::Uuid,
     pub iat: usize,
     pub exp: usize,
-    //pub aud: String,
-    //pub iss: Vec<String>,
-    //pub role: String,
-    //pub subscription: bool,
 }
 
 #[derive(Debug, Error)]
@@ -43,12 +38,7 @@ impl JwksClaims {
 pub fn datetime_to_usize(datetime: DateTime<Utc>) -> Result<usize, JwksClaimsError> {
     let timestamp = datetime.timestamp();
 
-    let usize_timestamp = usize::try_from(timestamp).map_err(|error| match error {
-        _ => {
-            error!("{}", error);
-            error
-        }
-    })?;
+    let usize_timestamp = usize::try_from(timestamp).map_err(log_err)?;
 
     Ok(usize_timestamp)
 }
@@ -65,12 +55,7 @@ pub fn usize_to_datetime(usize_timestamp: usize) -> Result<DateTime<Utc>, JwksCl
             Err(JwksClaimsError::Datetime("Unexpected time".to_string()))
         }
     }
-    .map_err(|error| match error {
-        _ => {
-            error!("{}", error);
-            error
-        }
-    })?;
+    .map_err(log_err)?;
 
     Ok(datetime)
 }

@@ -1,8 +1,8 @@
+use crate::domain::error::error_handling::log_err;
 use std::{
     fs::{read, remove_file, write},
     path::PathBuf,
 };
-use tracing::error;
 
 #[derive(Debug, Clone)]
 pub struct FileIO {
@@ -17,34 +17,19 @@ impl FileIO {
     }
 
     pub fn write(&self, data: &str) -> Result<(), std::io::Error> {
-        let _ = write(&self.file_path, &data).map_err(|error| match error {
-            err => {
-                error!("IO error caused: {}", &err);
-                err
-            }
-        })?;
+        let _ = write(&self.file_path, &data).map_err(log_err)?;
 
         Ok(())
     }
 
     pub fn read(&self) -> Result<Vec<u8>, std::io::Error> {
-        let data = read(&self.file_path).map_err(|error| match error {
-            err => {
-                error!("IO error caused: {}", &err);
-                err
-            }
-        })?;
+        let data = read(&self.file_path).map_err(log_err)?;
 
         Ok(data)
     }
 
     pub fn remove(&self) -> Result<(), std::io::Error> {
-        let _ = remove_file(&self.file_path).map_err(|error| match error {
-            err => {
-                error!("IO error caused: {}", &err);
-                err
-            }
-        })?;
+        let _ = remove_file(&self.file_path).map_err(log_err)?;
 
         Ok(())
     }

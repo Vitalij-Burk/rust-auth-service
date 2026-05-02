@@ -1,12 +1,14 @@
 use std::string::FromUtf8Error;
+use thiserror::Error;
 use tracing::error;
+
+use crate::domain::error::error_handling::log_err;
 
 use aes_gcm::{
     AeadCore, Aes256Gcm, KeyInit, Nonce,
     aead::{Aead, OsRng, consts::U32, generic_array::GenericArray},
 };
 use base64::{Engine, engine::general_purpose};
-use thiserror::Error;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AesGcmCryptographer {
@@ -93,11 +95,6 @@ impl AesGcmCryptographer {
                     }
                 })?;
 
-        Ok(String::from_utf8(decrypted).map_err(|error| match error {
-            _ => {
-                error!("{}", error);
-                error
-            }
-        })?)
+        Ok(String::from_utf8(decrypted).map_err(log_err)?)
     }
 }

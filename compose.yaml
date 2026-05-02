@@ -1,8 +1,8 @@
 services:
   auth:
-    image: wordy_auth:latest
+    build: .
     ports:
-      - 5001:5000
+      - 5000:5000
     depends_on:
       redis:
         condition: service_healthy
@@ -13,7 +13,7 @@ services:
     image: redis:latest
     restart: always
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:

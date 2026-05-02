@@ -10,6 +10,7 @@ use thiserror::Error;
 
 use crate::{
     domain::{
+        error::error_handling::log_err,
         models::claims::Claims,
         traits::token::{
             jwt::{token_provider::IJwtTokenProvider, token_validator::IJwtTokenValidator},
@@ -85,12 +86,7 @@ where
         let keys_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(keys_dir_path);
 
         if !keys_dir.exists() {
-            let _ = std::fs::create_dir(&keys_dir).map_err(|error| match error {
-                err => {
-                    error!("Couldn't create keys directory: {}", &err);
-                    err
-                }
-            });
+            let _ = std::fs::create_dir(&keys_dir).map_err(log_err);
         }
 
         let encryption_key_file_io = FileIO::new(
@@ -145,10 +141,10 @@ where
         &mut self,
         access: &str,
         pem: &str,
-    ) -> Result<Claims, TokenManagerError> {
-        let claims = self.access_validator.verify(access, pem)?;
+    ) -> Result<bool, TokenManagerError> {
+        let res = self.access_validator.verify(access, pem)?;
 
-        Ok(claims)
+        Ok(res)
     }
 
     pub async fn verify_refresh(
@@ -213,7 +209,8 @@ where
             .delete(&format!("tokens:refresh:token:{}", &refresh.clone()))
             .await?;
 
-        let claims = self.access_validator.verify(&access, &public_pem)?;
+        let _ = self.access_validator.verify(&access, &public_pem)?;
+        let claims = self.access_validator.decode(&access, &public_pem)?;
 
         let access_token = self.access_provider.generate(&claims, &private_pem)?;
         let refresh_token = self.refresh_provider.generate();
