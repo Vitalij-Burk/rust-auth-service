@@ -1,4 +1,4 @@
-use std::{path::PathBuf, string::FromUtf8Error};
+use std::{env, path::PathBuf, string::FromUtf8Error};
 
 use thiserror::Error;
 use tracing::error;
@@ -41,7 +41,11 @@ pub enum KeyManagerError {
 
 impl KeyManager {
     pub fn new(keys_dir_path: &str) -> Result<Self, KeyManagerError> {
-        let keys_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(keys_dir_path);
+        let keys_dir = if let Ok(env_path) = env::var("KEYS_DIR") {
+            PathBuf::from(env_path)
+        } else {
+            env::current_dir()?.join(keys_dir_path)
+        };
 
         if !keys_dir.exists() {
             let _ = std::fs::create_dir(&keys_dir).map_err(log_err);
@@ -59,6 +63,8 @@ impl KeyManager {
                 .to_str()
                 .ok_or(KeyManagerError::Unexpected("Invalid path".to_string()))?,
         );
+
+        tracing::info!("KeyManager initialized");
 
         Ok(Self {
             key_provider: RsaPemProvider,

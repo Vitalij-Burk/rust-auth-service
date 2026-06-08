@@ -7,16 +7,15 @@ use tracing::info;
 
 use crate::{
     api::{
-        key::key_handlers::get_public_key,
-        token::token_handlers::{
+        key::{key_queues::KeyQM, key_handlers::get_public_key}, token::token_handlers::{
             generate_tokens, refresh_token, revoke_refresh_token, verify_access_token,
-        },
+        }
     },
     application::services::{key::key_manager::KeyManager, token::token_manager::TokenManager},
-    infrastructure::token::{
+    infrastructure::{queues::rabbitmq::rabbitmq::RabbitMQ, token::{
         jwks::{jwks_provider::JwksTokenProvider, jwks_validator::JwksTokenValidator},
         opaque::opaque_provider::GetrandomOpaqueTokenProvider,
-    },
+    }},
 };
 
 mod api;
@@ -62,15 +61,31 @@ impl AppState {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
+    tracing::info!("Tracing started");
+
+    dotenvy::dotenv().ok();
+    tracing::info!("Env files provided");
 
     dotenvy::dotenv().ok();
 
     let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
     let connection = redis_client.get_multiplexed_async_connection().await?;
+    tracing::info!("Redis connected successfully");
+
+    let rabbitmq = RabbitMQ::new(&std::env::var("RABBITMQ_URL")?)?;
+    tracing::info!("RabbitMQ connected successfully");
+
+    let rabbit_channel = rabbitmq.declare_channel().await?;
 
     let state = AppState::new(connection)?;
 
+    let key_qm = KeyQM::new(rabbit_channel);
+
     state.key_manager.provide()?;
+    tracing::info!("Public pem provided to file");
+
+    key_qm.provide_public_key(state.key_manager.get_public()?).await?;
+    tracing::info!("Public pem provided to RabbitMQ");
 
     let app = Router::new()
         .route("/", get(|| async { "Hello world!" }))
