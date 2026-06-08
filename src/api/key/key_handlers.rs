@@ -2,6 +2,7 @@ use axum::{extract::State, http::StatusCode};
 
 use crate::AppState;
 
+
 pub async fn get_public_key(
     State(state): State<AppState>,
 ) -> Result<String, (StatusCode, &'static str)> {
@@ -12,5 +13,7 @@ pub async fn get_public_key(
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
         })?;
 
+
     Ok(public_key)
 }
+

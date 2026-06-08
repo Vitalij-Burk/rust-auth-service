@@ -3,7 +3,7 @@ use aes_gcm::{
     aead::{KeyInit, OsRng},
 };
 use base64::{self, Engine, engine::general_purpose};
-use std::{path::PathBuf, string::FromUtf8Error};
+use std::{env, path::PathBuf, string::FromUtf8Error};
 use tracing::error;
 
 use thiserror::Error;
@@ -64,6 +64,9 @@ pub enum TokenManagerError {
 
     #[error("Cryptographer error: {0}")]
     Cryptographer(#[from] AesGcmCryptographerError),
+
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl<AccessProvider, AccessValidator, RefreshProvider, Storage>
@@ -83,7 +86,12 @@ where
     ) -> Result<Self, TokenManagerError> {
         let redis_io = RedisIO::new(storage);
 
-        let keys_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(keys_dir_path);
+        let keys_dir = if let Ok(env_path) = env::var("KEYS_DIR") {
+            PathBuf::from(env_path)
+        } else {
+            env::current_dir()?.join(keys_dir_path)
+        };
+
 
         if !keys_dir.exists() {
             let _ = std::fs::create_dir(&keys_dir).map_err(log_err);
@@ -103,6 +111,8 @@ where
         let _ = encryption_key_file_io.write(&base64_key);
 
         let cryptographer = AesGcmCryptographer::new(&key);
+
+        tracing::info!("TokenManager initialized");
 
         Ok(Self {
             access_provider,

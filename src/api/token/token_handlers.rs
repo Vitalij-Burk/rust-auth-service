@@ -26,6 +26,7 @@ pub async fn generate_tokens(
             | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::IO(_)
             | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
@@ -58,6 +59,7 @@ pub async fn verify_access_token(
             | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::IO(_)
             | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
@@ -103,6 +105,7 @@ pub async fn refresh_token(
             | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::IO(_)
             | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
@@ -129,6 +132,7 @@ pub async fn revoke_refresh_token(
             | TokenManagerError::JwksTokenValidator(_)
             | TokenManagerError::Crypto(_)
             | TokenManagerError::FromUTF8(_)
+            | TokenManagerError::IO(_)
             | TokenManagerError::Cryptographer(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
