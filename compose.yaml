@@ -6,9 +6,16 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    envfile:
+      /.env
     environment:
       - REDIS_URL=${REDIS_URL}
-      - RUST_LOG=${RUST_LOG}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - KEYS_DIR=${KEYS_DIR}
   redis:
     image: redis:latest
     restart: always
@@ -22,6 +29,24 @@ services:
       timeout: 3s
       retries: 5
     command: redis-server --appendonly yes
+  rabbitmq:
+    image: rabbitmq:4.3-management-alpine
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+configs:
+  rabbitmq-plugins:
+    content: "[rabbitmq-management]."
 
 volumes:
   redis_data:
